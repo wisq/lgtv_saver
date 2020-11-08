@@ -1,23 +1,23 @@
 defmodule LgtvSaver.Watcher do
   use GenServer
   require Logger
-  alias LgtvSaver.TV
+  alias LgtvSaver.Saver
 
   @default_idle_time 300
 
   defmodule State do
-    @enforce_keys [:socket, :tv, :input, :idle_time, :last_active]
+    @enforce_keys [:socket, :saver, :input, :idle_time, :last_active]
     defstruct(
       socket: nil,
-      tv: nil,
+      saver: nil,
       input: nil,
       idle_time: nil,
       last_active: nil
     )
   end
 
-  def start_link(tv, input, %{} = options) do
-    GenServer.start_link(__MODULE__, {tv, input, options})
+  def start_link(saver, input, %{} = options) do
+    GenServer.start_link(__MODULE__, {saver, input, options})
   end
 
   defp current_time() do
@@ -25,7 +25,7 @@ defmodule LgtvSaver.Watcher do
   end
 
   @impl true
-  def init({tv, input, options}) do
+  def init({saver, input, options}) do
     idle_time = Map.get(options, :idle_time, @default_idle_time) * 1000
     ip = Map.get(options, :bind, {0, 0, 0, 0})
     port = Map.fetch!(options, :port)
@@ -35,7 +35,7 @@ defmodule LgtvSaver.Watcher do
     {:ok,
      %State{
        socket: socket,
-       tv: tv,
+       saver: saver,
        input: input,
        idle_time: idle_time,
        last_active: current_time()
@@ -58,7 +58,7 @@ defmodule LgtvSaver.Watcher do
   @impl true
   def handle_info(:timeout, state) do
     Logger.info("#{state.input}: Activity timeout.")
-    TV.inactive(state.tv, state.input)
+    Saver.inactive(state.saver, state.input)
     {:noreply, state, state.idle_time}
   end
 
@@ -69,7 +69,7 @@ defmodule LgtvSaver.Watcher do
     cond do
       msecs > 1000 ->
         Logger.debug("#{state.input}: Activity timeout in #{inspect(msecs)} ms")
-        TV.active(state.tv, state.input)
+        Saver.active(state.saver, state.input)
         {:noreply, state, msecs}
 
       msecs > 0 ->
@@ -78,7 +78,7 @@ defmodule LgtvSaver.Watcher do
 
       true ->
         Logger.debug("#{state.input}: Activity timeout #{inspect(0 - msecs)} ms ago")
-        TV.inactive(state.tv, state.input)
+        Saver.inactive(state.saver, state.input)
         {:noreply, state, state.idle_time * 1000}
     end
   end

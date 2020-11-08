@@ -30,14 +30,30 @@ defmodule LgtvSaver do
 
   defp child_specs() do
     tv_id = :lgtv_saver_tv
+    saver_id = :lgtv_saver
+
+    saver_spec = %{
+      id: saver_id,
+      start:
+        {LgtvSaver.Saver, :start_link,
+         [
+           tv_id,
+           Application.fetch_env!(:lgtv_saver, :saver_input),
+           LgtvSaver.Waker.new(
+             Application.fetch_env!(:lgtv_saver, :wake_broadcast),
+             Application.fetch_env!(:lgtv_saver, :wake_mac)
+           ),
+           [name: saver_id]
+         ]}
+    }
 
     tv_spec = %{
       id: tv_id,
       start:
         {LgtvSaver.TV, :start_link,
          [
+           saver_id,
            Application.fetch_env!(:lgtv_saver, :tv_ip),
-           Application.fetch_env!(:lgtv_saver, :saver_input),
            [name: tv_id]
          ]}
     }
@@ -47,10 +63,10 @@ defmodule LgtvSaver do
       |> Enum.map(fn {input, options} ->
         %{
           id: :"lgtv_saver_watcher_#{input}",
-          start: {LgtvSaver.Watcher, :start_link, [tv_id, input, options]}
+          start: {LgtvSaver.Watcher, :start_link, [saver_id, input, options]}
         }
       end)
 
-    [tv_spec] ++ watcher_specs
+    [saver_spec, tv_spec] ++ watcher_specs
   end
 end

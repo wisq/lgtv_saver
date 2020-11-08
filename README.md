@@ -43,15 +43,26 @@ echo 86400000 | socat STDIO UDP-SENDTO:127.0.0.1:3232
 
 Now you'll want to set up your client system to send activity info.  See the `examples` directory for how you might do this.
 
+## Waking up from power off
+
+If you leave your TV on a "no signal" input for very long, it's going to automatically turn off.  When the workstation becomes active, you probably want the TV to turn back on and return to that input, so `lgtv_saver` tries to resolve this in one of two ways.
+
+If an input becomes active and `lgtv_saver` thinks the TV has turned off (based on the data it received previously), it will try to issue a power button event.  Since the TV seems to wait several minutes before actually powering off, this may be sufficient to wake the TV up, if it hasn't completely powered off.  (There is a slight risk that this might actually turn the TV off — see [Caveats](#caveats) below.)
+
+Alternatively, you can enable wake-on-LAN support on your TV.  On my 48" CX TV, I found this setting under Settings → Connection → Mobile Connection Management → TV On With Mobile → Turn on via Wi-Fi.  (Yes, this setting applies even if you're using an ethernet cable.)
+
+With wake-on-LAN enabled, the TV will actually power off much quicker (almost immediately), but `lgtv_saver` now has the ability to wake it up from a power off state.  Find your TV's broadcast address — punch your TV's details into [this IP calculator tool](http://jodies.de/ipcalc?host=192.168.2.118&mask1=255.255.255.0&mask2=) if you're unsure — and plug the MAC address and broadcast address into `config/config.exs`.
+
+If you've set up your workstation to send activity immediately upon booting up (e.g. before logging in — see the "wakeup" scripts in `examples`) then this also has the added advantage of turning your TV on when your workstation boots up, provided the TV was last set to that workstation.
+
 ## Caveats
 
-If you leave the TV on a "no signal" input for too long, it'll probably turn itself off.  You'll have to turn it back on manually.  Because the `LgtvSaver.TV` module has crashed and recovered, it won't know what input to use, and it'll just switch to the first active input it sees.
+When the TV is in the "half powered down" state — where the TV appears off, but the OS and network stack are still functional — the only way I know to wake it up is to simulate a power button event.  Of course, if `lgtv_saver` has misunderstood the state of the TV, this might actually end up turning it off.
 
-To fix this, I'll likely need to split the TV module up so that part of it can remain running even if the TV connection dies.  I might also look into having it send a Wake-on-LAN event to the TV when it's time to wake up.
+If you find your TV turning off unexpectedly, search for `turn_off` in `lib/lgtv_saver/tv.ex` and try commenting out that line.  If that fixes your problem, feel free to let me know by [creating an issue](issues).
 
 ## Todo?
 
-* More graceful handling of poweroff / wakeup
 * Add tests
 * Client script for Mac, Linux
 

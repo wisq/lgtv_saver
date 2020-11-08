@@ -1,36 +1,33 @@
 defmodule LgtvSaver.TV do
   use GenServer
   require Logger
+  alias LgtvSaver.Saver
+  alias ExLgtv.Remote
 
   defmodule State do
-    @enforce_keys [:client, :saver_input]
+    @enforce_keys [:saver, :client]
     defstruct(
-      ready: false,
+      saver: nil,
       client: nil,
-      saver_input: nil,
+      ready: false,
       inputs: %{},
-      current_input: nil,
-      previous_input: nil
+      current_input: nil
     )
   end
 
-  def start_link(ip, input, options \\ []) do
-    GenServer.start_link(__MODULE__, {ip, input}, options)
+  def start_link(saver, ip, options \\ []) do
+    GenServer.start_link(__MODULE__, {saver, ip}, options)
   end
 
-  def active(pid, input) do
-    :ok = GenServer.cast(pid, {:active, input})
-  end
-
-  def inactive(pid, input) do
-    :ok = GenServer.cast(pid, {:inactive, input})
+  def select_input(pid, input) do
+    :ok = GenServer.cast(pid, {:select_input, input})
   end
 
   @impl true
-  def init({ip, input}) do
+  def init({saver, ip}) do
     {:ok, pid} = ExLgtv.Client.start_link(ip)
     Process.send_after(self(), :setup, 1000)
-    {:ok, %State{client: pid, saver_input: input}}
+    {:ok, %State{saver: saver, client: pid}}
   end
 
   @impl true
@@ -39,32 +36,24 @@ defmodule LgtvSaver.TV do
   end
 
   @impl true
-  def handle_cast({:active, input}, state) do
-    cond do
-      state.previous_input == input ->
-        Logger.info("Previous input #{inspect(input)} has become active.")
-        ExLgtv.Remote.Inputs.select(state.client, input)
-
-      state.current_input == state.saver_input && is_nil(state.previous_input) ->
-        Logger.warn("No previous input, and #{inspect(input)} has become active, so using that.")
-        ExLgtv.Remote.Inputs.select(state.client, input)
-
-      true ->
-        Logger.debug("Input #{inspect(input)} is active.")
-    end
-
-    {:noreply, state}
-  end
-
-  @impl true
-  def handle_cast({:inactive, input}, state) do
-    if state.current_input == input do
-      Logger.info("Current input #{inspect(input)} has become inactive.")
-      ExLgtv.Remote.Inputs.select(state.client, state.saver_input)
+  def handle_cast({:select_input, input}, state) do
+    if is_nil(state.current_input) do
+      Logger.info("TV: Waking TV and changing to input #{inspect(input)}.")
+      # Annoyingly, there doesn't seem to be a separate call for "turn on".
+      # This effectively simulates pressing the power button.
+      #
+      # Sadly, I have to accept the risk that this might trigger
+      # incorrectly and turn the TV off unexpectedly.  But it seems
+      # to work fine so far.
+      #
+      # If the TV has actually powered off, this will just fail to send,
+      # and nothing will happen.  Hopefully Waker will do its thing.
+      Remote.turn_off(state.client)
     else
-      Logger.debug("Input #{inspect(input)} is inactive.")
+      Logger.info("TV: Changing to input #{inspect(input)}.")
     end
 
+    Remote.Inputs.select(state.client, input)
     {:noreply, state}
   end
 
@@ -81,9 +70,15 @@ defmodule LgtvSaver.TV do
   end
 
   @impl true
+  def handle_info({"input_change", _} = msg, %State{ready: false} = state) do
+    # Received our first input_change event, so we're ready.
+    handle_info(msg, %State{state | ready: true})
+  end
+
+  @impl true
   def handle_info({"input_change", %{"appId" => ""}}, state) do
     Logger.info("TV appears to have turned off.")
-    {:noreply, state}
+    {:noreply, %State{state | current_input: nil}}
   end
 
   @impl true
@@ -108,25 +103,15 @@ defmodule LgtvSaver.TV do
         %{}
       )
 
-    %State{state | inputs: input_map, ready: true}
+    %State{state | inputs: input_map}
   end
 
   defp handle_input_change(id, state) do
-    old = state.current_input
-    new = id
+    from = state.current_input
+    to = id
 
-    cond do
-      old == new ->
-        Logger.debug("Input stayed the same: #{inspect(old)}")
-        state
-
-      state.saver_input == new ->
-        Logger.info("Screen saved -- changed from #{inspect(old)} to #{inspect(new)}.")
-        %State{state | current_input: new, previous_input: old}
-
-      true ->
-        Logger.info("Changed to input #{inspect(id)}.")
-        %State{state | current_input: id, previous_input: nil}
-    end
+    Logger.info("TV: Changed from #{inspect(from)} to #{inspect(to)}.")
+    Saver.input_changed(state.saver, from, to)
+    %State{state | current_input: to}
   end
 end
