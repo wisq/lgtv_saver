@@ -1,6 +1,12 @@
 #SingleInstance force
 #NoTrayIcon
 
+; These are needed for A_TimeIdlePhysical to work.
+; If you don't want one of these to count as activity,
+; just comment it out.
+#InstallKeybdHook
+#InstallMouseHook
+
 ; Requires Socket.ahk from https://github.com/G33kDude/Socket.ahk
 #include include/Socket.ahk
 
