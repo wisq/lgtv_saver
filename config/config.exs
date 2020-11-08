@@ -9,3 +9,7 @@ config :lgtv_saver,
       port: 3232
     }
   }
+
+config :logger, :console,
+  level: :info,
+  format: "$metadata[$level] $levelpad$message\n"
