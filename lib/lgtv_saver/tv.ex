@@ -1,10 +1,11 @@
-defmodule LgtvSaver.Tv do
+defmodule LgtvSaver.TV do
   use GenServer
   require Logger
 
   defmodule State do
     @enforce_keys [:client, :saver_input]
     defstruct(
+      ready: false,
       client: nil,
       saver_input: nil,
       inputs: %{},
@@ -13,16 +14,16 @@ defmodule LgtvSaver.Tv do
     )
   end
 
-  def start_link(ip, input) do
-    GenServer.start_link(__MODULE__, {ip, input})
+  def start_link(ip, input, options \\ []) do
+    GenServer.start_link(__MODULE__, {ip, input}, options)
   end
 
   def active(pid, input) do
-    :ok = GenServer.call(pid, {:active, input})
+    :ok = GenServer.cast(pid, {:active, input})
   end
 
   def inactive(pid, input) do
-    :ok = GenServer.call(pid, {:inactive, input})
+    :ok = GenServer.cast(pid, {:inactive, input})
   end
 
   @impl true
@@ -33,7 +34,12 @@ defmodule LgtvSaver.Tv do
   end
 
   @impl true
-  def handle_call({:active, input}, _from, state) do
+  def handle_cast(_any, %State{ready: false} = state) do
+    {:noreply, state}
+  end
+
+  @impl true
+  def handle_cast({:active, input}, state) do
     if state.previous_input == input do
       Logger.info("Previous input #{inspect(input)} has become active.")
       ExLgtv.Remote.Inputs.select(state.client, input)
@@ -41,11 +47,11 @@ defmodule LgtvSaver.Tv do
       Logger.debug("Input #{inspect(input)} is active.")
     end
 
-    {:reply, :ok, state}
+    {:noreply, state}
   end
 
   @impl true
-  def handle_call({:inactive, input}, _from, state) do
+  def handle_cast({:inactive, input}, state) do
     if state.current_input == input do
       Logger.info("Current input #{inspect(input)} has become inactive.")
       ExLgtv.Remote.Inputs.select(state.client, state.saver_input)
@@ -53,7 +59,7 @@ defmodule LgtvSaver.Tv do
       Logger.debug("Input #{inspect(input)} is inactive.")
     end
 
-    {:reply, :ok, state}
+    {:noreply, state}
   end
 
   @impl true
@@ -66,6 +72,12 @@ defmodule LgtvSaver.Tv do
         Process.send_after(self(), :setup, 1000)
         {:noreply, state}
     end
+  end
+
+  @impl true
+  def handle_info({"input_change", %{"appId" => ""}}, state) do
+    Logger.info("TV appears to have turned off.")
+    {:noreply, state}
   end
 
   @impl true
@@ -90,19 +102,25 @@ defmodule LgtvSaver.Tv do
         %{}
       )
 
-    %State{state | inputs: input_map}
+    %State{state | inputs: input_map, ready: true}
   end
 
   defp handle_input_change(id, state) do
     old = state.current_input
     new = id
 
-    if state.saver_input == new do
-      Logger.info("Screen saved -- changed from #{inspect(old)} to #{inspect(new)}.")
-      %State{state | current_input: new, previous_input: old}
-    else
-      Logger.info("Changed to input #{inspect(id)}.")
-      %State{state | current_input: id, previous_input: nil}
+    cond do
+      old == new ->
+        Logger.debug("Input stayed the same: #{inspect(old)}")
+        state
+
+      state.saver_input == new ->
+        Logger.info("Screen saved -- changed from #{inspect(old)} to #{inspect(new)}.")
+        %State{state | current_input: new, previous_input: old}
+
+      true ->
+        Logger.info("Changed to input #{inspect(id)}.")
+        %State{state | current_input: id, previous_input: nil}
     end
   end
 end
