@@ -50,14 +50,14 @@ defmodule LgtvSaver.Watcher do
         {:noreply, %State{state | last_active: current_time() - msecs}, {:continue, :activity}}
 
       _ ->
-        Logger.debug("#{state.input}: Unexpected data: #{inspect(data)}")
+        Logger.warn("#{state.input}: Unexpected data: #{inspect(data)}")
         {:noreply, state, {:continue, :activity}}
     end
   end
 
   @impl true
   def handle_info(:timeout, state) do
-    Logger.debug("#{state.input}: Activity timeout")
+    Logger.info("#{state.input}: Activity timeout.")
     TV.inactive(state.tv, state.input)
     {:noreply, state, state.idle_time}
   end

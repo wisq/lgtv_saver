@@ -46,7 +46,7 @@ defmodule LgtvSaver.TV do
         ExLgtv.Remote.Inputs.select(state.client, input)
 
       state.current_input == state.saver_input && is_nil(state.previous_input) ->
-        Logger.info("No previous input, and #{inspect(input)} has become active, so using that.")
+        Logger.warn("No previous input, and #{inspect(input)} has become active, so using that.")
         ExLgtv.Remote.Inputs.select(state.client, input)
 
       true ->
