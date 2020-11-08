@@ -16,4 +16,4 @@
 socket := new SocketUDP()
 socket.Connect(["192.168.2.1", "3232"])
 socket.SendText(0)
-Exit
+ExitApp
