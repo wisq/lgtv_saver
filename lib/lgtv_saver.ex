@@ -39,10 +39,7 @@ defmodule LgtvSaver do
          [
            tv_id,
            Application.fetch_env!(:lgtv_saver, :saver_input),
-           LgtvSaver.Waker.new(
-             Application.fetch_env!(:lgtv_saver, :wake_broadcast),
-             Application.fetch_env!(:lgtv_saver, :wake_mac)
-           ),
+           generate_waker(),
            [name: saver_id]
          ]}
     }
@@ -68,5 +65,17 @@ defmodule LgtvSaver do
       end)
 
     [saver_spec, tv_spec] ++ watcher_specs
+  end
+
+  defp generate_waker do
+    with {:ok, broadcast} <- Application.fetch_env(:lgtv_saver, :wake_broadcast),
+         {:ok, mac} <- Application.fetch_env(:lgtv_saver, :wake_mac) do
+      Logger.info("Wake-on-LAN enabled for #{mac} via #{broadcast}.")
+      LgtvSaver.Waker.new(broadcast, mac)
+    else
+      :error ->
+        Logger.info("Wake-on-LAN not enabled.")
+        :no_waker
+    end
   end
 end
