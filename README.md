@@ -31,7 +31,7 @@ Because it uses UDP packets to track idle time, you can put `lgtv_saver` on any 
 
 The first time you run this, your TV will prompt you to let the program control the TV; you'll need to accept this before you can continue.
 
-Without any activity info from any workstations, the TV will likely switch to `HDMI_4` (or your configured input) as soon as `idle_timeout` seconds have passed.  You can send some sample input to test it if you like.  For example, using the excellent `socat` utility:
+Without any activity info from any workstations, the TV will likely switch to `HDMI_4` (or your configured input) as soon as `idle_time` seconds have passed.  You can send some sample input to test it if you like.  For example, using the excellent `socat` utility:
 
 ```sh
 # Pretend the console is active:
