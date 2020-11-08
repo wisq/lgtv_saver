@@ -77,8 +77,8 @@ defmodule LgtvSaver.TV do
 
   @impl true
   def handle_info({"input_change", %{"appId" => ""}}, state) do
-    Logger.info("TV appears to have turned off.")
-    {:noreply, %State{state | current_input: nil}}
+    Logger.debug("TV appears to have turned off.")
+    {:noreply, %State{} = handle_input_change(nil, state)}
   end
 
   @impl true
