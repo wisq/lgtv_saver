@@ -40,11 +40,17 @@ defmodule LgtvSaver.TV do
 
   @impl true
   def handle_cast({:active, input}, state) do
-    if state.previous_input == input do
-      Logger.info("Previous input #{inspect(input)} has become active.")
-      ExLgtv.Remote.Inputs.select(state.client, input)
-    else
-      Logger.debug("Input #{inspect(input)} is active.")
+    cond do
+      state.previous_input == input ->
+        Logger.info("Previous input #{inspect(input)} has become active.")
+        ExLgtv.Remote.Inputs.select(state.client, input)
+
+      state.current_input == state.saver_input && is_nil(state.previous_input) ->
+        Logger.info("No previous input, and #{inspect(input)} has become active, so using that.")
+        ExLgtv.Remote.Inputs.select(state.client, input)
+
+      true ->
+        Logger.debug("Input #{inspect(input)} is active.")
     end
 
     {:noreply, state}

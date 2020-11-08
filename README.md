@@ -45,7 +45,7 @@ Now you'll want to set up your client system to send activity info.  See the `ex
 
 ## Caveats
 
-If you leave the TV on a "no signal" input for too long, it'll probably turn itself off.  You'll have to turn it back on manually, and the TV handler will have crashed, so it won't automatically switch back to the correct input.
+If you leave the TV on a "no signal" input for too long, it'll probably turn itself off.  You'll have to turn it back on manually.  Because the `LgtvSaver.TV` module has crashed and recovered, it won't know what input to use, and it'll just switch to the first active input it sees.
 
 To fix this, I'll likely need to split the TV module up so that part of it can remain running even if the TV connection dies.  I might also look into having it send a Wake-on-LAN event to the TV when it's time to wake up.
 
