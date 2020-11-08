@@ -45,7 +45,7 @@ defmodule LgtvSaver.Watcher do
   @impl true
   def handle_info({:udp, socket, _address, _port, data}, %State{socket: socket} = state) do
     case :string.chomp(data) |> Integer.parse() do
-      {msecs, ""} ->
+      {msecs, ""} when msecs >= 0 ->
         Logger.debug("#{state.input}: Idle for #{msecs} ms")
         {:noreply, %State{state | last_active: current_time() - msecs}, {:continue, :activity}}
 
