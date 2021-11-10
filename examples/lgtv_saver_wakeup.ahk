@@ -15,5 +15,11 @@
 
 socket := new SocketUDP()
 socket.Connect(["192.168.2.1", "3232"])
-socket.SendText(0)
+; We do this several times to make sure
+;   - the network has time to get set up, and
+;   - lgtv_saver both turns on the TV _and_ sets the correct input.
+Loop 10 {
+	Sleep 3000
+	socket.SendText("0")
+}
 ExitApp
