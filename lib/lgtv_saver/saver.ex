@@ -65,6 +65,11 @@ defmodule LgtvSaver.Saver do
   end
 
   @impl true
+  def handle_cast({:input_changed, nil, nil}, state) do
+    {:noreply, state}
+  end
+
+  @impl true
   def handle_cast({:input_changed, from, nil}, %State{saver_input: from} = state) do
     Logger.info("Saver: Powered off from saver input #{inspect(from)}.")
     {:noreply, %State{state | current_input: nil}}
