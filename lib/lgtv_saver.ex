@@ -32,43 +32,42 @@ defmodule LgtvSaver do
     Code.ensure_loaded?(IEx) and IEx.started?()
   end
 
+  @supervisor LgtvSaver.Supervisor
+  @tv_id Module.concat(@supervisor, TV)
+  @saver_id Module.concat(@supervisor, Saver)
+
   defp child_specs() do
-    tv_id = :lgtv_saver_tv
-    saver_id = :lgtv_saver
+    main = [
+      {LgtvSaver.Saver,
+       [
+         tv: @tv_id,
+         saver_input: Application.fetch_env!(:lgtv_saver, :saver_input),
+         waker: generate_waker(),
+         name: @saver_id
+       ]},
+      {LgtvSaver.TV,
+       [
+         saver: @saver_id,
+         ip: Application.fetch_env!(:lgtv_saver, :tv_ip),
+         name: @tv_id
+       ]}
+    ]
 
-    saver_spec = %{
-      id: saver_id,
-      start:
-        {LgtvSaver.Saver, :start_link,
-         [
-           tv_id,
-           Application.fetch_env!(:lgtv_saver, :saver_input),
-           generate_waker(),
-           [name: saver_id]
-         ]}
-    }
-
-    tv_spec = %{
-      id: tv_id,
-      start:
-        {LgtvSaver.TV, :start_link,
-         [
-           saver_id,
-           Application.fetch_env!(:lgtv_saver, :tv_ip),
-           [name: tv_id]
-         ]}
-    }
-
-    watcher_specs =
+    watchers =
       Application.fetch_env!(:lgtv_saver, :bindings)
-      |> Enum.map(fn {input, options} ->
-        %{
-          id: :"lgtv_saver_watcher_#{input}",
-          start: {LgtvSaver.Watcher, :start_link, [saver_id, input, options]}
-        }
-      end)
+      |> Enum.map(&watcher_spec/1)
 
-    [saver_spec, tv_spec] ++ watcher_specs
+    main ++ watchers
+  end
+
+  defp watcher_spec({input, options}) do
+    {LgtvSaver.Watcher,
+     Enum.to_list(options)
+     |> Keyword.merge(
+       saver: @saver_id,
+       input: input
+     )}
+    |> Supervisor.child_spec(id: :"watcher_#{input}")
   end
 
   defp generate_waker do

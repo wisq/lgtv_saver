@@ -47,21 +47,19 @@ defmodule LgtvSaver.WatcherTest do
   end
 
   defp start_watcher(ctx) do
-    options = Map.fetch!(ctx, :options) |> Map.put(:port, 0) |> Map.put(:bind, @localhost)
-
     {:ok, saver} = start_supervised(MockGenServer)
 
-    {:ok, watcher} =
-      start_supervised(%{
-        id: :watcher,
-        start:
-          {Watcher, :start_link,
-           [
-             saver,
-             Map.get(ctx, :input, "HDMI_1"),
-             options
-           ]}
+    options =
+      Map.fetch!(ctx, :options)
+      |> Map.merge(%{
+        input: "HDMI_1",
+        bind: @localhost,
+        port: 0,
+        saver: saver
       })
+      |> Map.to_list()
+
+    {:ok, watcher} = start_supervised({Watcher, options})
 
     port = Watcher.get_port(watcher)
     {:ok, udp} = :gen_udp.open(0, [:binary])

@@ -76,18 +76,13 @@ defmodule LgtvSaver.SaverTest do
   defp start_saver(ctx) do
     {:ok, tv} = start_supervised(MockGenServer)
 
-    {:ok, saver} =
-      start_supervised(%{
-        id: :saver,
-        start:
-          {LgtvSaver.Saver, :start_link,
-           [
-             tv,
-             Map.get(ctx, :saver_input, "HDMI_4"),
-             Map.get(ctx, :waker_option, :no_waker),
-             [name: nil]
-           ]}
-      })
+    options = [
+      tv: tv,
+      saver_input: Map.get(ctx, :saver_input, "HDMI_4"),
+      waker: Map.get(ctx, :waker_option, :no_waker)
+    ]
+
+    {:ok, saver} = start_supervised({LgtvSaver.Saver, options})
 
     [saver: saver, tv: tv]
   end

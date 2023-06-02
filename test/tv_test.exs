@@ -21,17 +21,12 @@ defmodule LgtvSaver.TVTest do
     with {:ok, tcp} <- :gen_tcp.listen(3000, [:binary] ++ [ip: @localhost_tuple, active: false]) do
       {:ok, saver} = start_supervised(MockGenServer)
 
-      {:ok, _tv} =
-        start_supervised(%{
-          id: :tv,
-          start:
-            {LgtvSaver.TV, :start_link,
-             [
-               saver,
-               @localhost_string,
-               []
-             ]}
-        })
+      options = [
+        saver: saver,
+        ip: @localhost_string
+      ]
+
+      {:ok, _tv} = start_supervised({LgtvSaver.TV, options})
 
       assert {:ok, conn} = :gen_tcp.accept(tcp, 1000)
       assert {:ok, "GET / HTTP/1.1\r\n" <> _} = :gen_tcp.recv(conn, 0)

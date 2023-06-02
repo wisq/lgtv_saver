@@ -15,8 +15,12 @@ defmodule LgtvSaver.Saver do
     )
   end
 
-  def start_link(tv, input, waker, options \\ []) do
-    GenServer.start_link(__MODULE__, {tv, input, waker}, options)
+  def start_link(opts) do
+    {tv, opts} = Keyword.pop!(opts, :tv)
+    {input, opts} = Keyword.pop!(opts, :saver_input)
+    {waker, opts} = Keyword.pop(opts, :waker, Waker.none())
+
+    GenServer.start_link(__MODULE__, {tv, input, waker}, opts)
   end
 
   def input_changed(pid, from, to) do

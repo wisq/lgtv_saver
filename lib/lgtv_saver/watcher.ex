@@ -4,6 +4,7 @@ defmodule LgtvSaver.Watcher do
   alias LgtvSaver.Saver
 
   @default_idle_time 300
+  @bind_any {0, 0, 0, 0}
 
   defmodule State do
     @enforce_keys [:socket, :saver, :input, :idle_time, :start_time]
@@ -17,8 +18,8 @@ defmodule LgtvSaver.Watcher do
     )
   end
 
-  def start_link(saver, input, %{} = options) do
-    GenServer.start_link(__MODULE__, {saver, input, options})
+  def start_link(opts) do
+    GenServer.start_link(__MODULE__, opts)
   end
 
   def get_port(pid), do: GenServer.call(pid, :get_port)
@@ -28,10 +29,13 @@ defmodule LgtvSaver.Watcher do
   end
 
   @impl true
-  def init({saver, input, options}) do
-    idle_time = Map.get(options, :idle_time, @default_idle_time) * 1000
-    ip = Map.get(options, :bind, {0, 0, 0, 0})
-    port = Map.fetch!(options, :port)
+  def init(opts) do
+    saver = Keyword.fetch!(opts, :saver)
+    input = Keyword.fetch!(opts, :input)
+    port = Keyword.fetch!(opts, :port)
+
+    idle_time = Keyword.get(opts, :idle_time, @default_idle_time) * 1000
+    ip = Keyword.get(opts, :bind, @bind_any)
 
     {:ok, socket} = :gen_udp.open(port, [:binary, ip: ip, active: true])
 

@@ -15,6 +15,8 @@ defmodule LgtvSaver.Waker do
     %Waker{broadcast: broadcast, mac: mac}
   end
 
+  def none, do: :no_waker
+
   def wake(%Waker{broadcast: broadcast, mac: mac, port: port}) do
     WOL.send(mac, broadcast_addr: broadcast, port: port)
   end
