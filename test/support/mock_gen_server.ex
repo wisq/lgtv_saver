@@ -2,6 +2,8 @@ defmodule LSTest.MockGenServer do
   use GenServer
   require Logger
 
+  @default_timeout 200
+
   def child_spec(opts) do
     %{
       id: __MODULE__,
@@ -13,11 +15,27 @@ defmodule LSTest.MockGenServer do
     GenServer.start_link(__MODULE__, nil, opts)
   end
 
-  def next_call(pid, timeout \\ 200) do
+  def next_message(pid, timeout \\ @default_timeout) do
     try do
-      GenServer.call(pid, :next_call, timeout)
+      GenServer.call(pid, :next_message, timeout)
     catch
       :exit, {:timeout, _} -> :timeout
+    end
+  end
+
+  def next_call(pid, timeout \\ @default_timeout) do
+    case next_message(pid, timeout) do
+      {:call, msg} -> msg
+      :timeout -> :timeout
+      other -> raise "Got #{inspect(other)} when expecting call"
+    end
+  end
+
+  def next_cast(pid, timeout \\ @default_timeout) do
+    case next_message(pid, timeout) do
+      {:cast, msg} -> msg
+      :timeout -> :timeout
+      other -> raise "Got #{inspect(other)} when expecting cast"
     end
   end
 
@@ -56,11 +74,11 @@ defmodule LSTest.MockGenServer do
 
   @impl true
   def handle_cast(msg, state) do
-    {:noreply, reply_or_record(msg, state)}
+    {:noreply, reply_or_record({:cast, msg}, state)}
   end
 
   @impl true
-  def handle_call(:next_call, from, state) do
+  def handle_call(:next_message, from, state) do
     case :queue.out(state.messages) do
       {{:value, msg}, messages} ->
         {:reply, msg, %State{state | messages: messages}}
@@ -72,7 +90,7 @@ defmodule LSTest.MockGenServer do
 
   @impl true
   def handle_call(msg, _from, state) do
-    state = reply_or_record(msg, state)
+    state = reply_or_record({:call, msg}, state)
 
     case state.responses |> first_matching_response(msg) do
       {:reply, msg} ->

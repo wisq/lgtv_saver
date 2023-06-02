@@ -10,45 +10,45 @@ defmodule LgtvSaver.SaverTest do
     test "switches to saver input when current input becomes inactive", %{saver: saver, tv: tv} do
       Saver.input_changed(saver, nil, "HDMI_1")
       Saver.inactive(saver, "HDMI_1")
-      assert MockGenServer.next_call(tv) == {:select_input, "HDMI_4"}
+      assert MockGenServer.next_cast(tv) == {:select_input, "HDMI_4"}
     end
 
     test "does not switch to saver if a different input goes inactive", %{saver: saver, tv: tv} do
       Saver.input_changed(saver, nil, "HDMI_1")
       Saver.inactive(saver, "HDMI_2")
-      assert MockGenServer.next_call(tv) == :timeout
+      assert MockGenServer.next_cast(tv) == :timeout
     end
 
     test "switches back to input when it becomes active again", %{saver: saver, tv: tv} do
       Saver.input_changed(saver, "HDMI_1", "HDMI_4")
       Saver.active(saver, "HDMI_1")
-      assert MockGenServer.next_call(tv) == {:select_input, "HDMI_1"}
+      assert MockGenServer.next_cast(tv) == {:select_input, "HDMI_1"}
     end
 
     test "does not switch back to input if it was not the previous input", %{saver: saver, tv: tv} do
       Saver.input_changed(saver, "HDMI_1", "HDMI_4")
       Saver.active(saver, "HDMI_2")
-      assert MockGenServer.next_call(tv) == :timeout
+      assert MockGenServer.next_cast(tv) == :timeout
     end
 
     test "repeats input change if TV powers on into saver input", %{saver: saver, tv: tv} do
       Saver.input_changed(saver, "HDMI_1", "HDMI_4")
 
       Saver.active(saver, "HDMI_1")
-      assert MockGenServer.next_call(tv) == {:select_input, "HDMI_1"}
+      assert MockGenServer.next_cast(tv) == {:select_input, "HDMI_1"}
 
       # Power on into saver:
       Saver.input_changed(saver, nil, "HDMI_4")
-      assert MockGenServer.next_call(tv) == {:select_input, "HDMI_1"}
+      assert MockGenServer.next_cast(tv) == {:select_input, "HDMI_1"}
 
       # Power on again, still haven't acknowledged input change:
       Saver.input_changed(saver, nil, "HDMI_4")
-      assert MockGenServer.next_call(tv) == {:select_input, "HDMI_1"}
+      assert MockGenServer.next_cast(tv) == {:select_input, "HDMI_1"}
 
       # Now we acknowledge the change, so it shouldn't happen again:
       Saver.input_changed(saver, "HDMI_4", "HDMI_1")
       Saver.input_changed(saver, nil, "HDMI_4")
-      assert MockGenServer.next_call(tv) == :timeout
+      assert MockGenServer.next_cast(tv) == :timeout
     end
   end
 
