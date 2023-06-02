@@ -6,12 +6,13 @@ defmodule LgtvSaver.Watcher do
   @default_idle_time 300
 
   defmodule State do
-    @enforce_keys [:socket, :saver, :input, :idle_time, :last_active]
+    @enforce_keys [:socket, :saver, :input, :idle_time, :start_time]
     defstruct(
       socket: nil,
       saver: nil,
       input: nil,
       idle_time: nil,
+      start_time: nil,
       last_active: nil
     )
   end
@@ -19,6 +20,8 @@ defmodule LgtvSaver.Watcher do
   def start_link(saver, input, %{} = options) do
     GenServer.start_link(__MODULE__, {saver, input, options})
   end
+
+  def get_port(pid), do: GenServer.call(pid, :get_port)
 
   defp current_time() do
     DateTime.utc_now() |> DateTime.to_unix(:millisecond)
@@ -37,9 +40,15 @@ defmodule LgtvSaver.Watcher do
        socket: socket,
        saver: saver,
        input: input,
-       idle_time: idle_time,
-       last_active: current_time()
+       idle_time: round(idle_time),
+       start_time: current_time()
      }, {:continue, :activity}}
+  end
+
+  @impl true
+  def handle_call(:get_port, _from, state) do
+    {:ok, port} = :inet.port(state.socket)
+    {:reply, port, state, {:continue, :activity}}
   end
 
   @impl true
@@ -64,22 +73,16 @@ defmodule LgtvSaver.Watcher do
 
   @impl true
   def handle_continue(:activity, state) do
-    msecs = state.last_active + state.idle_time - current_time()
+    msecs = (state.last_active || state.start_time) + state.idle_time - current_time()
 
-    cond do
-      msecs > 1000 ->
-        Logger.debug("#{state.input}: Activity timeout in #{inspect(msecs)} ms")
-        Saver.active(state.saver, state.input)
-        {:noreply, state, msecs}
-
-      msecs > 0 ->
-        Logger.debug("#{state.input}: Activity timeout in less than a second")
-        {:noreply, state, msecs}
-
-      true ->
-        Logger.debug("#{state.input}: Activity timeout #{inspect(0 - msecs)} ms ago")
-        Saver.inactive(state.saver, state.input)
-        {:noreply, state, state.idle_time * 1000}
+    if msecs > 0 do
+      Logger.debug("#{state.input}: Activity timeout in #{inspect(msecs)} ms")
+      if state.last_active, do: Saver.active(state.saver, state.input)
+      {:noreply, state, msecs}
+    else
+      Logger.debug("#{state.input}: Activity timeout #{inspect(0 - msecs)} ms ago")
+      Saver.inactive(state.saver, state.input)
+      {:noreply, state, state.idle_time * 1000}
     end
   end
 end
