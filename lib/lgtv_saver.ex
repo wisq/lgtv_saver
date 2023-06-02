@@ -21,7 +21,11 @@ defmodule LgtvSaver do
   end
 
   def supervise? do
-    !iex_running?()
+    case Application.get_env(:lgtv_saver, :start, :if_not_iex) do
+      true -> true
+      false -> false
+      :if_not_iex -> !iex_running?()
+    end
   end
 
   defp iex_running? do
