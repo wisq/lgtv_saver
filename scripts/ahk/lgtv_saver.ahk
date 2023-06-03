@@ -10,6 +10,18 @@
 ; Requires Socket.ahk from https://github.com/G33kDude/Socket.ahk
 #include include/Socket.ahk
 
+; Kill any running lgtv_keepalive:
+DetectHiddenWindows, ON
+WinGet, id, list, ahk_class AutoHotkey 
+Loop, %id% ; retrieves the  ID of the specified windows, one at a time
+{
+	StringTrimRight, id, id%a_index%, 0
+	WinGetTitle, title, ahk_id %id%
+	If InStr(title, "lgtv_keepalive") {
+		WinClose, %title%
+	}
+}
+
 ; Every second, send a UDP packet to lgtv_saver,
 ; running on the target address, containing the number
 ; of milliseconds this computer has been idle.
@@ -24,5 +36,12 @@ SetTimer Activity, 1000
 return
 
 Activity:
-socket.SendText(A_TimeIdlePhysical)
+try {
+	socket.SendText(A_TimeIdlePhysical)
+} catch {
+	Sleep 5000
+	Reload
+}
 return
+
+;Left::return

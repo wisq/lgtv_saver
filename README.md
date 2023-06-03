@@ -20,7 +20,7 @@ To track idle activity, it sets up a UDP port listener.  You should regularly se
 
 Because it uses UDP packets to track idle time, you can put `lgtv_saver` on any computer on your network — an always-on server, a Raspberry Pi, etc — and you can use any OS for your workstation computer.  And if your workstation stops sending activity updates, `lgtv_saver` will assume it's inactive and protect your screen accordingly.
 
-## Setup
+## Server setup
 
 1. Run `mix deps.get && mix deps.compile` to fetch and compile dependencies.
 2. Edit `config/config.exs` to match your setup.
@@ -31,17 +31,57 @@ Because it uses UDP packets to track idle time, you can put `lgtv_saver` on any 
 
 The first time you run this, your TV will prompt you to let the program control the TV; you'll need to accept this before you can continue.
 
-Without any activity info from any workstations, the TV will likely switch to `HDMI_4` (or your configured input) as soon as `idle_time` seconds have passed.  You can send some sample input to test it if you like.  For example, using the excellent `socat` utility:
+## Client setup
+
+Without any activity info from any workstations, the TV will switch to your configured `saver_input` as soon as `idle_time` seconds have passed.  To keep this from happening, you'll need to set up some means to report user activity to the server.
+
+### Example: `socat`
+
+One easy way to mark your system as active is just to send a simple `0` ("I'm active now") via UDP.  You can use `socat` to send this:
 
 ```sh
 # Pretend the console is active:
 echo 0 | socat STDIO UDP-SENDTO:127.0.0.1:3232
 # Or pretend it's been inactive for a whole day:
 echo 86400000 | socat STDIO UDP-SENDTO:127.0.0.1:3232
-# Remember to change the IP and port as needed!
 ```
 
-Now you'll want to set up your client system to send activity info.  See the `examples` directory for how you might do this.
+Or alternatively, netcat:
+
+```sh
+# Pretend the console is active:
+echo 0 | nc -u 127.0.0.1 3232
+# Or pretend it's been inactive for a whole day:
+echo 86400000 | nc -u 127.0.0.1 3232
+```
+
+These can be useful as part of a wake-on-LAN script — see [`scripts/wake.sh`](scripts/wake.sh) for an example.
+
+### On Windows
+
+#### AutoHotKey
+
+The [`scripts/ahk`](scripts/ahk) directory contains AutoHotKey scripts that can be used as clients on Windows systems:
+
+ * [`scripts/ahk/lgtv_saver.ahk`](scripts/ahk/lgtv_saver.ahk) — Regularly reports keyboard and mouse idle time.
+ * [`scripts/ahk/lgtv_saver_wakeup.ahk`](scripts/ahk/lgtv_saver_wakeup.ahk) — Set up Task Scheduler to run this on boot, before the login screen.  It will wake up the screen so you can log in.
+ * [`scripts/ahk/lgtv_keepalive.ahk`](scripts/ahk/lgtv_keepalive.ahk) — If you plan to idle for a while but don't want the screensaver kicking in, run this to pretend the system is active.  (Running this script will automatically kill `lgtv_saver.ahk`, and running `lgtv_saver.ahk` automatically kills this script in return.)
+
+You'll want to edit these to change the server IP and port, and you'll also probably want to compile them to executables (right click on the file and select "Compile script") to make them portable and easier to use.
+
+#### DS4Windows
+
+These scripts cover mouse and keyboard activity, but what about gamepads?  Using a gamepad typically means not touching the keyboard or mouse, which causes AutoHotKey to report to the server that you're idle, and (usually at some critical moment) the screensaver kicks in and your screen goes blank.
+
+While you can use `lgtv_keepalive.ahk` to prevent this, there is an easier way, as long as you're using a PS4 or PS5 controller.  [DS4Windows](https://ds4-windows.com/) is a software suite that lets you do a bunch of things with PlayStation controllers, including sending all controller activity over the network — and `lgtv_saver` can be set up to listen for this network traffic.
+
+To use this, make sure you configure `ds4_port` in the appropriate `bindings` config section.  Then, in DS4Windows' configuration, check off "enable OSC server" and "send realtime data", and input the IP and port of your `lgtv_saver` server.
+
+Any traffic received this way will mark the system as active (overriding the idle time reported by AutoHotKey), so you should now be able to seamlessly switch between keyboard & mouse or gamepad without needing to remember to enable the `lgtv_keepalive.ahk`.
+
+### On Mac / Linux
+
+I don't currently have a solution for reporting Mac and Linux idle time to `lgtv_saver`.  If you come up with something, please feel free to [create an issue / PR](issues/new)!
 
 ## Waking up from power off
 
@@ -61,13 +101,8 @@ When the TV is in the "half powered down" state — where the TV appears off, bu
 
 If you find your TV turning off unexpectedly, search for `turn_off` in `lib/lgtv_saver/tv.ex` and try commenting out that line.  If that fixes your problem, feel free to let me know by [creating an issue](issues).
 
-## Todo?
-
-* Add tests
-* Client script for Mac, Linux
-
 ## Legal stuff
 
-Copyright © 2020, Adrian Irving-Beer.
+Copyright © 2023, Adrian Irving-Beer.
 
 `lgtv_saver` is released under the [Apache 2 License](LICENSE) and is provided with **no warranty**.  I do my best to write secure and resilient code, but I'm not liable if things break.  Be careful with your TV, and don't expose your UDP ports to the internet.
