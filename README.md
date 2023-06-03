@@ -55,7 +55,7 @@ echo 0 | nc -u 127.0.0.1 3232
 echo 86400000 | nc -u 127.0.0.1 3232
 ```
 
-These can be useful as part of a wake-on-LAN script — see [`scripts/wake.sh`](scripts/wake.sh) for an example.
+These can be useful as part of a wake-on-LAN script — see [`scripts/wakeup.sh`](scripts/wakeup.sh) for an example.
 
 ### On Windows
 
@@ -93,7 +93,7 @@ Alternatively, you can enable wake-on-LAN support on your TV.  On my 48" CX TV, 
 
 With wake-on-LAN enabled, the TV will actually power off much quicker (almost immediately), but `lgtv_saver` now has the ability to wake it up from a power off state.  Find your TV's broadcast address — punch your TV's details into [this IP calculator tool](http://jodies.de/ipcalc?host=192.168.2.118&mask1=255.255.255.0&mask2=) if you're unsure — and plug the MAC address and broadcast address into `config/config.exs`.
 
-If you've set up your workstation to send activity immediately upon booting up (e.g. before logging in — see the "wakeup" scripts in `examples`) then this also has the added advantage of turning your TV on when your workstation boots up, provided the TV was last set to that workstation.
+If you've set up your workstation to send activity immediately upon booting up (e.g. before logging in — see the "[`wakeup.sh`](scripts/wakeup.sh)" script in `examples`) then this also has the added advantage of turning your TV on when your workstation boots up, provided the TV was last set to that workstation.
 
 ## Caveats
 
