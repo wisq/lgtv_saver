@@ -8,6 +8,7 @@ config :lgtv_saver,
   bindings: %{
     "HDMI_1" => %{
       idle_time: 300,
-      port: 3232
+      port: 3232,
+      ds4_port: 9001
     }
   }

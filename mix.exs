@@ -32,6 +32,7 @@ defmodule LgtvSaver.MixProject do
       # {:dep_from_git, git: "https://github.com/elixir-lang/my_dep.git", tag: "0.1.0"}
       {:ex_lgtv, git: "https://github.com/wisq/ex_lgtv.git", tag: "55c9b5b"},
       {:wakeonlan, "~> 0.1.0"},
+      {:ex_osc, "~> 0.1.0", only: :test},
       {:mix_test_watch, "~> 1.0", only: :dev, runtime: false},
       {:ex_git_test, "~> 0.1.2", only: [:dev, :test], runtime: false}
     ]
