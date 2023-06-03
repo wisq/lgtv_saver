@@ -81,7 +81,7 @@ Any traffic received this way will mark the system as active (overriding the idl
 
 ### On Mac / Linux
 
-I don't currently have a solution for reporting Mac and Linux idle time to `lgtv_saver`.  If you come up with something, please feel free to [create an issue / PR](issues/new)!
+I don't currently have a solution for reporting Mac and Linux idle time to `lgtv_saver`.  If you come up with something, please feel free to [create an issue / PR!](../../issues/new)
 
 ## Waking up from power off
 
@@ -99,7 +99,7 @@ If you've set up your workstation to send activity immediately upon booting up (
 
 When the TV is in the "half powered down" state — where the TV appears off, but the OS and network stack are still functional — the only way I know to wake it up is to simulate a power button event.  Of course, if `lgtv_saver` has misunderstood the state of the TV, this might actually end up turning it off.
 
-If you find your TV turning off unexpectedly, search for `turn_off` in `lib/lgtv_saver/tv.ex` and try commenting out that line.  If that fixes your problem, feel free to let me know by [creating an issue](issues).
+If you find your TV turning off unexpectedly, search for `turn_off` in `lib/lgtv_saver/tv.ex` and try commenting out that line.  If that fixes your problem, feel free to let me know by [creating an issue](../../issues/new).
 
 ## Legal stuff
 
