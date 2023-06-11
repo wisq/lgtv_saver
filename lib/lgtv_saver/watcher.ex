@@ -92,12 +92,16 @@ defmodule LgtvSaver.Watcher do
   @impl true
   def handle_info({:udp, socket, _address, _port, data}, %State{ds4_socket: socket} = state) do
     case data do
+      <<"/ds4windows/monitor/", _, "/plug\0", _::binary>> ->
+        Logger.debug("#{state.input}: ignoring DS4 plug event")
+        {:noreply, state, state.idle_time}
+
       "/ds4" <> _ ->
         Logger.debug("#{state.input}: DS4 gamepad activity")
         {:noreply, %State{state | last_ds4_active: current_time()}, state.idle_time}
 
       _ ->
-        Logger.warn("Non-DS4 packet received: #{inspect(data)}")
+        Logger.warn("#{state.input}: Non-DS4 packet received: #{inspect(data)}")
         {:noreply, state, state.idle_time}
     end
   end
